@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLE Explorer - Interactive Parameter Estimation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --accent-cyan: #00d4ff;
+            --accent-coral: #ff6b6b;
+            --accent-teal: #4ecdc4;
+            --accent-success: #2ecc71;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --border: #2a2a4a;
+            --shadow-glow: rgba(0, 212, 255, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0;
+            position: relative;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+            opacity: 0.1;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.1; }
+            50% { transform: translateX(-50%) scale(1.2); opacity: 0.15; }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 32px;
+            margin-top: 32px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px var(--shadow-glow);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title .icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-teal));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Distribution Selector */
+        .dist-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .dist-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dist-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+        }
+
+        .dist-btn.active {
+            background: linear-gradient(135deg, var(--accent-cyan), #00a8cc);
+            border-color: transparent;
+            color: var(--bg-primary);
+        }
+
+        /* Input Groups */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .tooltip-trigger {
+            width: 18px;
+            height: 18px;
+            background: var(--border);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip-trigger:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 100;
+            margin-bottom: 8px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        input[type="number"].invalid {
+            border-color: var(--accent-coral);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), #00a8cc);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-coral);
+            color: var(--accent-coral);
+        }
+
+        /* Visualization Area */
+        .viz-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .viz-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Results Panel */
+        .results-panel {
+            margin-top: 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .result-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .result-icon.normal {
+            background: linear-gradient(135deg, var(--accent-cyan), #00a8cc);
+        }
+
+        .result-icon.exponential {
+            background: linear-gradient(135deg, var(--accent-teal), #3ba89c);
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .param-row:last-child {
+            border-bottom: none;
+        }
+
+        .param-name {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .param-values {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .param-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1rem;
+        }
+
+        .param-true {
+            color: var(--accent-coral);
+        }
+
+        .param-est {
+            color: var(--accent-teal);
+        }
+
+        .error-metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .metric-name {
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        /* Log Likelihood Display */
+        .ll-value {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(78, 205, 196, 0.1));
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .ll-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .ll-number {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 48px;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .explanation {
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        .explanation strong {
+            color: var(--accent-cyan);
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MLE Explorer</h1>
+            <p class="subtitle">Interactive Maximum Likelihood Estimation for Distribution Parameters</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Control Panel -->
+            <div class="card">
+                <h2 class="card-title">
+                    <span class="icon">⚙</span>
+                    Configuration
+                </h2>
+
+                <div class="dist-selector">
+                    <button class="dist-btn active" data-dist="normal">Normal</button>
+                    <button class="dist-btn" data-dist="exponential">Exponential</button>
+                </div>
+
+                <!-- Normal Parameters -->
+                <div id="normal-params">
+                    <div class="input-group">
+                        <label class="input-label">
+                            Mean (μ)
+                            <span class="tooltip-trigger" data-tooltip="The center of the distribution">?</span>
+                        </label>
+                        <input type="number" id="normal-mu" value="0" step="0.1" min="-10" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">
+                            Variance (σ²)
+                            <span class="tooltip-trigger" data-tooltip="Spread of data around the mean">?</span>
+                        </label>
+                        <input type="number" id="normal-var" value="1" step="0.1" min="0.1" max="10">
+                    </div>
+                </div>
+
+                <!-- Exponential Parameters -->
+                <div id="exponential-params" class="hidden">
+                    <div class="input-group">
+                        <label class="input-label">
+                            Rate (λ)
+                            <span class="tooltip-trigger" data-tooltip="Higher λ = faster decay">?</span>
+                        </label>
+                        <input type="number" id="exp-lambda" value="1" step="0.1" min="0.1" max="5">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">
+                        Sample Size (n)
+                        <span class="tooltip-trigger" data-tooltip="More samples = better estimates">?</span>
+                    </label>
+                    <input type="number" id="sample-size" value="100" step="10" min="10" max="1000">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="generate-btn">Generate & Estimate</button>
+                    <button class="btn btn-secondary" id="reset-btn">Reset</button>
+                </div>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div class="viz-grid">
+                <div class="card">
+                    <div class="chart-title">📊 Data Histogram with Distribution Fit</div>
+                    <div class="chart-container">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">📈 Log-Likelihood Surface</div>
+                    <div class="chart-container">
+                        <canvas id="llChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel hidden" id="results-panel">
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-icon normal">μ</div>
+                    <div class="result-title">Parameter Estimates</div>
+                </div>
+                <div id="param-comparison"></div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-icon exponential">σ</div>
+                    <div class="result-title">Error Metrics</div>
+                </div>
+                <div id="error-metrics"></div>
+            </div>
+
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-icon" style="background: linear-gradient(135deg, var(--accent-coral), #e55a5a);">ℓ</div>
+                    <div class="result-title">Optimal Log-Likelihood</div>
+                </div>
+                <div class="ll-value">
+                    <div class="ll-label">Maximum Log-Likelihood at MLE</div>
+                    <div class="ll-number" id="ll-opt">—</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="explanation">
+                <p><strong>Maximum Likelihood Estimation (MLE)</strong> finds parameter values that make the observed data most probable. 
+                For Normal: μ̂ = sample mean, σ̂² = sample variance. For Exponential: λ̂ = 1 / sample mean.</p>
+                <p style="margin-top: 12px;">The <strong>Log-Likelihood</strong> curve shows how likely different parameter values are — the peak represents the MLE.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // State
+        let currentDist = 'normal';
+        let histogramChart = null;
+        let llChart = null;
+        let samples = [];
+        let mleResults = {};
+
+        // Distribution selection
+        document.querySelectorAll('.dist-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.dist-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDist = btn.dataset.dist;
+                
+                document.getElementById('normal-params').classList.toggle('hidden', currentDist !== 'normal');
+                document.getElementById('exponential-params').classList.toggle('hidden', currentDist !== 'exponential');
+            });
+        });
+
+        // Generate samples
+        function generateNormalSamples(mu, sigma2, n) {
+            const samples = [];
+            for (let i = 0; i < n; i++) {
+                // Box-Muller transform
+                const u1 = Math.random();
+                const u2 = Math.random();
+                const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                samples.push(mu + Math.sqrt(sigma2) * z);
+            }
+            return samples;
+        }
+
+        function generateExponentialSamples(lambda, n) {
+            const samples = [];
+            for (let i = 0; i < n; i++) {
+                const u = Math.random();
+                samples.push(-Math.log(1 - u) / lambda);
+            }
+            return samples;
+        }
+
+        // MLE Estimation
+        function estimateNormalMLE(samples) {
+            const n = samples.length;
+            const muHat = samples.reduce((a, b) => a + b, 0) / n;
+            const varHat = samples.reduce((a, b) => a + Math.pow(b - muHat, 2), 0) / n;
+            return { muHat, varHat };
+        }
+
+        function estimateExponentialMLE(samples) {
+            const n = samples.length;
+            const mean = samples.reduce((a, b) => a + b, 0) / n;
+            const lambdaHat = 1 / mean;
+            return { lambdaHat };
+        }
+
+        // Log-Likelihood
+        function normalLogLikelihood(samples, mu, sigma2) {
+            const n = samples.length;
+            if (sigma2 <= 0) return -Infinity;
+            const ss = samples.reduce((a, b) => a + Math.pow(b - mu, 2), 0);
+            return -n/2 * Math.log(2 * Math.PI) - n/2 * Math.log(sigma2) - ss / (2 * sigma2);
+        }
+
+        function exponentialLogLikelihood(samples, lambda) {
+            const n = samples.length;
+            if (lambda <= 0) return -Infinity;
+            const sum = samples.reduce((a, b) => a + b, 0);
+            return n * Math.log(lambda) - lambda * sum;
+        }
+
+        // Generate and Estimate
+        document.getElementById('generate-btn').addEventListener('click', () => {
+            const n = parseInt(document.getElementById('sample-size').value);
+            
+            if (currentDist === 'normal') {
+                const mu = parseFloat(document.getElementById('normal-mu').value);
+                const sigma2 = parseFloat(document.getElementById('normal-var').value);
+                
+                if (isNaN(mu) || isNaN(sigma2) || sigma2 <= 0) {
+                    alert('Please enter valid parameters');
+                    return;
+                }
+                
+                samples = generateNormalSamples(mu, sigma2, n);
+                mleResults = estimateNormalMLE(samples);
+                mleResults.trueMu = mu;
+                mleResults.trueSigma2 = sigma2;
+                mleResults.llOpt = normalLogLikelihood(samples, mleResults.muHat, mleResults.varHat);
+                
+                updateCharts(n, mu, sigma2, mleResults.muHat, mleResults.varHat);
+                displayResults('normal');
+            } else {
+                const lambda = parseFloat(document.getElementById('exp-lambda').value);
+                
+                if (isNaN(lambda) || lambda <= 0) {
+                    alert('Please enter valid rate parameter');
+                    return;
+                }
+                
+                samples = generateExponentialSamples(lambda, n);
+                mleResults = estimateExponentialMLE(samples);
+                mleResults.trueLambda = lambda;
+                mleResults.llOpt = exponentialLogLikelihood(samples, mleResults.lambdaHat);
+                
+                updateChartsExp(n, lambda, mleResults.lambdaHat);
+                displayResults('exponential');
+            }
+            
+            document.getElementById('results-panel').classList.remove('hidden');
+            document.getElementById('results-panel').classList.add('animate-in');
+        });
+
+        // Reset
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            document.getElementById('normal-mu').value = '0';
+            document.getElementById('normal-var').value = '1';
+            document.getElementById('exp-lambda').value = '1';
+            document.getElementById('sample-size').value = '100';
+            
+            if (histogramChart) histogramChart.destroy();
+            if (llChart) llChart.destroy();
+            
+            document.getElementById('results-panel').classList.add('hidden');
+            samples = [];
+            mleResults = {};
+        });
+
+        // Update Histogram Chart
+        function updateCharts(n, trueMu, trueSigma2, estMu, estSigma2) {
+            const ctx1 = document.getElementById('histogramChart').getContext('2d');
+            const ctx2 = document.getElementById('llChart').getContext('2d');
+            
+            // Create histogram data
+            const bins = 20;
+            const min = Math.min(...samples);
+            const max = Math.max(...samples);
+            const binWidth = (max - min) / bins;
+            
+            const histogramData = new Array(bins).fill(0);
+            samples.forEach(x => {
+                const bin = Math.min(Math.floor((x - min) / binWidth), bins - 1);
+                histogramData[bin]++;
+            });
+            
+            const labels = histogramData.map((_, i) => (min + (i + 0.5) * binWidth).toFixed(2));
+            
+            // Destroy old charts
+            if (histogramChart) histogramChart.destroy();
+            if (llChart) llChart.destroy();
+            
+            // Histogram Chart
+            histogramChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Histogram',
+                        data: histogramData,
+                        backgroundColor: 'rgba(0, 212, 255, 0.4)',
+                        borderColor: '#00d4ff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#a0a0b0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0b0', maxRotation: 45 },
+                            grid: { color: '#2a2a4a' }
+                        },
+                        y: {
+                            ticks: { color: '#a0a0b0' },
+                            grid: { color: '#2a2a4a' }
+                        }
+                    }
+                }
+            });
+            
+            // Add distribution curves
+            const xRange = [];
+            const step = (max - min) / 100;
+            for (let x = min; x <= max; x += step) {
+                xRange.push(x);
+            }
+            
+            const truePdf = xRange.map(x => {
+                const z = (x - trueMu) / Math.sqrt(trueSigma2);
+                return (1 / Math.sqrt(2 * Math.PI * trueSigma2)) * Math.exp(-0.5 * z * z);
+            });
+            
+            const estPdf = xRange.map(x => {
+                const z = (x - estMu) / Math.sqrt(estSigma2);
+                return (1 / Math.sqrt(2 * Math.PI * estSigma2)) * Math.exp(-0.5 * z * z);
+            });
+            
+            // Scale PDF to histogram
+            const scale = n * binWidth;
+            histogramChart.data.datasets.push({
+                label: 'True Distribution',
+                data: xRange.map((x, i) => truePdf[i] * scale),
+                type: 'line',
+                borderColor: '#ff6b6b',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0
+            });
+            
+            histogramChart.data.datasets.push({
+                label: 'Estimated Distribution',
+                data: xRange.map((x, i) => estPdf[i] * scale),
+                type: 'line',
+                borderColor: '#4ecdc4',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
+            });
+            
+            histogramChart.update();
+            
+            // Log-Likelihood Chart (for mu)
+            const muRange = [];
+            const llValues = [];
+            const muStep = (trueMu + 3 * Math.sqrt(trueSigma2) - (trueMu - 3 * Math.sqrt(trueSigma2))) / 50;
+            
+            for (let mu = trueMu - 3 * Math.sqrt(trueSigma2); mu <= trueMu + 3 * Math.sqrt(trueSigma2); mu += muStep) {
+                muRange.push(mu.toFixed(2));
+                llValues.push(normalLogLikelihood(samples, mu, estSigma2));
+            }
+            
+            llChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: muRange,
+                    datasets: [{
+                        label: 'Log-Likelihood',
+                        data: llValues,
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: 0
+                    }, {
+                        label: 'MLE',
+                        data: llValues.map((_, i) => llValues[i]),
+                        pointBackgroundColor: '#ff6b6b',
+                        pointRadius: 6,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#a0a0b0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0b0', maxRotation: 45 },
+                            grid: { color: '#2a2a4a' },
+                            title: { display: true, text: 'μ', color: '#a0a0b0' }
+                        },
+                        y: {
+                            ticks: { color: '#a0a0b0' },
+                            grid: { color: '#2a2a4a' },
+                            title: { display: true, text: 'Log-Likelihood', color: '#a0a0b0' }
+                        }
+                    }
+                }
+            });
+            
+            // Highlight MLE point
+            const mleIndex = llValues.indexOf(Math.max(...llValues));
+            llChart.data.datasets[1].data = llValues.map((v, i) => i === mleIndex ? v : null);
+            llChart.update();
+        }
+
+        // Update Charts for Exponential
+        function updateChartsExp(n, trueLambda, estLambda) {
+            const ctx1 = document.getElementById('histogramChart').getContext('2d');
+            const ctx2 = document.getElementById('llChart').getContext('2d');
+            
+            // Create histogram data
+            const bins = 20;
+            const min = 0;
+            const max = Math.max(...samples);
+            const binWidth = max / bins;
+            
+            const histogramData = new Array(bins).fill(0);
+            samples.forEach(x => {
+                const bin = Math.min(Math.floor(x / binWidth), bins - 1);
+                histogramData[bin]++;
+            });
+            
+            const labels = histogramData.map((_, i) => (i * binWidth).toFixed(2));
+            
+            if (histogramChart) histogramChart.destroy();
+            if (llChart) llChart.destroy();
+            
+            // Histogram Chart
+            histogramChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Histogram',
+                        data: histogramData,
+                        backgroundColor: 'rgba(78, 205, 196, 0.4)',
+                        borderColor: '#4ecdc4',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#a0a0b0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0b0', maxRotation: 45 },
+                            grid: { color: '#2a2a4a' }
+                        },
+                        y: {
+                            ticks: { color: '#a0a0b0' },
+                            grid: { color: '#2a2a4a' }
+                        }
+                    }
+                }
+            });
+            
+            // Add distribution curves
+            const xRange = [];
+            const step = max / 100;
+            for (let x = 0; x <= max; x += step) {
+                xRange.push(x);
+            }
+            
+            const truePdf = xRange.map(x => trueLambda * Math.exp(-trueLambda * x));
+            const estPdf = xRange.map(x => estLambda * Math.exp(-estLambda * x));
+            
+            const scale = n * binWidth;
+            histogramChart.data.datasets.push({
+                label: 'True Distribution',
+                data: xRange.map((x, i) => truePdf[i] * scale),
+                type: 'line',
+                borderColor: '#ff6b6b',
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0
+            });
+            
+            histogramChart.data.datasets.push({
+                label: 'Estimated Distribution',
+                data: xRange.map((x, i) => estPdf[i] * scale),
+                type: 'line',
+                borderColor: '#4ecdc4',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
+            });
+            
+            histogramChart.update();
+            
+            // Log-Likelihood Chart
+            const lambdaRange = [];
+            const llValues = [];
+            const lambdaStep = (5 - 0.1) / 50;
+            
+            for (let lambda = 0.1; lambda <= 5; lambda += lambdaStep) {
+                lambdaRange.push(lambda.toFixed(2));
+                llValues.push(exponentialLogLikelihood(samples, lambda));
+            }
+            
+            llChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: lambdaRange,
+                    datasets: [{
+                        label: 'Log-Likelihood',
+                        data: llValues,
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#a0a0b0' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0b0', maxRotation: 45 },
+                            grid: { color: '#2a2a4a' },
+                            title: { display: true, text: 'λ', color: '#a0a0b0' }
+                        },
+                        y: {
+                            ticks: { color: '#a0a0b0' },
+                            grid: { color: '#2a2a4a' },
+                            title: { display: true, text: 'Log-Likelihood', color: '#a0a0b0' }
+                        }
+                    }
+                }
+            });
+            
+            // Highlight MLE point
+            const mleIndex = llValues.indexOf(Math.max(...llValues));
+            llChart.data.datasets.push({
+                label: 'MLE',
+                data: llValues.map((v, i) => i === mleIndex ? v : null),
+                pointBackgroundColor: '#ff6b6b',
+                pointRadius: 6,
+                showLine: false,
+                type: 'scatter'
+            });
+            llChart.update();
+        }
+
+        // Display Results
+        function displayResults(dist) {
+            const paramDiv = document.getElementById('param-comparison');
+            const errorDiv = document.getElementById('error-metrics');
+            
+            if (dist === 'normal') {
+                const biasMu = mleResults.muHat - mleResults.trueMu;
+                const biasVar = mleResults.varHat - mleResults.trueSigma2;
+                const mseMu = biasMu * biasMu;
+                const mseVar = biasVar * biasVar;
+                
+                paramDiv.innerHTML = `
+                    <div class="param-row">
+                        <span class="param-name">Mean (μ)</span>
+                        <div class="param-values">
+                            <span class="param-value param-true">${mleResults.trueMu.toFixed(4)}</span>
+                            <span>→</span>
+                            <span class="param-value param-est">${mleResults.muHat.toFixed(4)}</span>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-name">Variance (σ²)</span>
+                        <div class="param-values">
+                            <span class="param-value param-true">${mleResults.trueSigma2.toFixed(4)}</span>
+                            <span>→</span>
+                            <span class="param-value param-est">${mleResults.varHat.toFixed(4)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                errorDiv.innerHTML = `
+                    <div class="error-metric">
+                        <span class="metric-name">Bias (μ̂ - μ)</span>
+                        <span class="metric-value">${biasMu.toFixed(4)}</span>
+                    </div>
+                    <div class="error-metric">
+                        <span class="metric-name">Bias (σ̂² - σ²)</span>
+                        <span class="metric-value">${biasVar.toFixed(4)}</span>
+                    </div>
+                    <div class="error-metric">
+                        <span class="metric-name">MSE (μ)</span>
+                        <span class="metric-value">${mseMu.toFixed(6)}</span>
+                    </div>
+                    <div class="error-metric">
+                        <span class="metric-name">MSE (σ²)</span>
+                        <span class="metric-value">${mseVar.toFixed(6)}</span>
+                    </div>
+                `;
+            } else {
+                const biasLambda = mleResults.lambdaHat - mleResults.trueLambda;
+                const mseLambda = biasLambda * biasLambda;
+                
+                paramDiv.innerHTML = `
+                    <div class="param-row">
+                        <span class="param-name">Rate (λ)</span>
+                        <div class="param-values">
+                            <span class="param-value param-true">${mleResults.trueLambda.toFixed(4)}</span>
+                            <span>→</span>
+                            <span class="param-value param-est">${mleResults.lambdaHat.toFixed(4)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                errorDiv.innerHTML = `
+                    <div class="error-metric">
+                        <span class="metric-name">Bias (λ̂ - λ)</span>
+                        <span class="metric-value">${biasLambda.toFixed(4)}</span>
+                    </div>
+                    <div class="error-metric">
+                        <span class="metric-name">MSE (λ)</span>
+                        <span class="metric-value">${mseLambda.toFixed(6)}</span>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('ll-opt').textContent = mleResults.llOpt.toFixed(4);
+        }
+    </script>
+</body>
+</html>
